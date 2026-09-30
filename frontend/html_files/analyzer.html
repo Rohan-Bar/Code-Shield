@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CodeShield — Analyzer</title>
+
+    <link rel="stylesheet" href="../css_files/style.css">
+    <link rel="stylesheet" href="../css_files/analyzer.css">
+</head>
+
+<body>
+
+    <header class="navbar">
+        <div class="navbar-left">
+            <a href="index.html" class="logo">
+                <span class="logo-icon">&lt;/&gt;</span>
+                <span class="logo-text">CodeShield</span>
+            </a>
+        </div>
+        <div class="navbar-right">
+            <a href="index.html" class="github-import">← Back to Home</a>
+        </div>
+    </header>
+
+    <main class="workspace">
+
+        <!-- LEFT: CODE INPUT -->
+        <section class="panel editor-panel">
+
+            <div class="panel-header">
+                <span class="panel-title">Code Editor</span>
+                <select id="language">
+                    <option>Python</option>
+                    <option>JavaScript</option>
+                    <option>Java</option>
+                    <option>C++</option>
+                </select>
+            </div>
+
+            <textarea
+                id="codeInput"
+                spellcheck="false"
+                placeholder="Paste your code here..."
+            ></textarea>
+
+            <div class="panel-footer">
+                <button class="primary-button" id="analyzeBtn">▶ Analyze Code</button>
+            </div>
+
+        </section>
+
+        <!-- RIGHT: AI CHATBOT -->
+        <section class="panel chat-panel">
+
+            <div class="panel-header chat-head">
+                <div class="chat-title">
+                    <span class="bot-avatar">&lt;/&gt;</span>
+                    <div>
+                        <strong>CodeShield AI</strong>
+                        <small><i class="online-dot"></i> Online</small>
+                    </div>
+                </div>
+            </div>
+
+            <div class="chat-messages" id="chatMessages"></div>
+
+            <form class="chat-form" id="chatForm">
+                <input
+                    type="text"
+                    id="chatInput"
+                    placeholder="Ask why your code is vulnerable..."
+                    autocomplete="off"
+                >
+                <button type="submit" class="send-btn">Send</button>
+            </form>
+
+        </section>
+
+    </main>
+
+    <script src="../js_files/analyzer.js"></script>
+</body>
+</html>
