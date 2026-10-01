@@ -1,19 +1,67 @@
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+
 from app.database import Base, engine
 from app import models
 from app.api.analyze import router as analyze_router
 
-app = FastAPI(title="SECURECODE AI")
 
+app = FastAPI(
+    title="SECURECODE AI",
+    version="1.0.0"
+)
+
+
+# ---------------------------------------------------------
+# CORS
+# ---------------------------------------------------------
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+
+# ---------------------------------------------------------
+# DATABASE
+# ---------------------------------------------------------
 
 @app.on_event("startup")
 def create_tables():
     Base.metadata.create_all(bind=engine)
 
 
-app.include_router(analyze_router)
+# ---------------------------------------------------------
+# API ROUTES
+# ---------------------------------------------------------
 
+app.include_router(
+    analyze_router,
+    prefix="/api"
+)
+
+
+# ---------------------------------------------------------
+# ROOT
+# ---------------------------------------------------------
+
+@app.get("/")
+def root():
+    return {
+        "message": "SECURECODE AI API is running"
+    }
+
+
+# ---------------------------------------------------------
+# HEALTH CHECK
+# ---------------------------------------------------------
 
 @app.get("/health")
 def health_check():
-    return {"status": "ok"}
+    return {
+        "status": "ok"
+    }
+
