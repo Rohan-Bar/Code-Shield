@@ -2,7 +2,6 @@
 <html lang="en">
 
 <head>
-
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
@@ -13,12 +12,9 @@
 
     <!-- Analyzer CSS -->
     <link rel="stylesheet" href="../css_files/analyzer.css">
-
 </head>
 
-
 <body>
-
 
     <!-- =====================================================
          NAVBAR
@@ -26,21 +22,21 @@
 
     <header class="navbar">
 
-        <!-- LEFT SIDE -->
-
         <div class="navbar-left">
 
             <!-- Hamburger -->
-
-            <button class="hamburger" id="hamburger" aria-label="Open menu" aria-expanded="false">
+            <button
+                class="hamburger"
+                id="hamburger"
+                aria-label="Open menu"
+                aria-expanded="false"
+            >
                 <span></span>
                 <span></span>
                 <span></span>
             </button>
 
-
             <!-- Logo -->
-
             <a href="index.html" class="logo">
 
                 <span class="logo-icon">
@@ -56,28 +52,29 @@
         </div>
 
 
-        <!-- RIGHT SIDE -->
-
         <div class="navbar-right">
 
             <!-- GitHub Import -->
-
-            <a href="#" class="github-import" id="githubImportBtn">
+            <a
+                href="#"
+                class="github-import"
+                id="githubImportBtn"
+            >
                 <span class="github-icon">↗</span>
                 GitHub Import
             </a>
 
-
             <!-- Back Home -->
-
-            <a href="index.html" class="nav-button">
+            <a
+                href="index.html"
+                class="nav-button"
+            >
                 Back to Home
             </a>
 
         </div>
 
     </header>
-
 
 
     <!-- =====================================================
@@ -105,13 +102,11 @@
     </div>
 
 
-
     <!-- =====================================================
          MAIN ANALYZER WORKSPACE
     ====================================================== -->
 
     <main class="workspace">
-
 
         <!-- =================================================
              TOP WORKSPACE
@@ -125,7 +120,6 @@
             ============================================== -->
 
             <section class="panel editor-panel">
-
 
                 <!-- Editor Header -->
 
@@ -146,7 +140,10 @@
 
                     <!-- Language -->
 
-                    <select id="language" aria-label="Programming language">
+                    <select
+                        id="language"
+                        aria-label="Programming language"
+                    >
 
                         <option value="python">
                             Python
@@ -169,15 +166,29 @@
                 </div>
 
 
-                <!-- GitHub Import -->
+                <!-- =========================================
+                     GITHUB IMPORT
+                ========================================== -->
 
-                <div class="github-import-panel" id="githubImportPanel" hidden>
+                <div
+                    class="github-import-panel"
+                    id="githubImportPanel"
+                    hidden
+                >
 
                     <div class="github-input-wrapper">
 
-                        <input type="url" id="githubUrl" placeholder="Paste GitHub raw file URL...">
+                        <input
+                            type="url"
+                            id="githubUrl"
+                            placeholder="Paste GitHub raw file URL..."
+                        >
 
-                        <button type="button" class="secondary-button" id="githubFetchBtn">
+                        <button
+                            type="button"
+                            class="secondary-button"
+                            id="githubFetchBtn"
+                        >
                             Import
                         </button>
 
@@ -186,33 +197,52 @@
                 </div>
 
 
-                <!-- Monaco Editor -->
+                <!-- =========================================
+                     CODE EDITOR
+                     Simple textarea for reliable interaction
+                ========================================== -->
 
-                <div id="monacoEditor" class="monaco-editor-container"></div>
+                <div class="code-editor-wrapper">
+
+                    <textarea
+                        id="codeInput"
+                        class="code-editor-fallback"
+                        placeholder="Paste or type your code here..."
+                        spellcheck="false"
+                        autocomplete="off"
+                        autocorrect="off"
+                        autocapitalize="off"
+                    ></textarea>
+
+                </div>
 
 
-                <!-- Fallback textarea -->
-
-                <textarea id="codeInput" spellcheck="false" placeholder="Paste your code here..." hidden></textarea>
-
-
-                <!-- Editor Footer -->
+                <!-- =========================================
+                     EDITOR FOOTER
+                ========================================== -->
 
                 <div class="panel-footer">
 
-                    <button type="button" class="secondary-button" id="clearCodeBtn">
+                    <button
+                        type="button"
+                        class="secondary-button"
+                        id="clearCodeBtn"
+                    >
                         Clear
                     </button>
 
 
-                    <button type="button" class="primary-button" id="analyzeBtn">
+                    <button
+                        type="button"
+                        class="primary-button"
+                        id="analyzeBtn"
+                    >
                         Analyze Code
                     </button>
 
                 </div>
 
             </section>
-
 
 
             <!-- =============================================
@@ -240,8 +270,11 @@
                             </strong>
 
                             <small>
+
                                 <i class="online-dot"></i>
+
                                 Ready to explain
+
                             </small>
 
                         </div>
@@ -251,10 +284,14 @@
                 </div>
 
 
+                <!-- =========================================
+                     SELECTED ISSUE
+                ========================================== -->
 
-                <!-- Selected Issue -->
-
-                <div class="ai-issue" id="aiIssue">
+                <div
+                    class="ai-issue"
+                    id="aiIssue"
+                >
 
                     <div class="ai-issue-header">
 
@@ -262,7 +299,10 @@
                             Selected Issue
                         </span>
 
-                        <span id="aiIssueSeverity" class="security-high">
+                        <span
+                            id="aiIssueSeverity"
+                            class="security-high"
+                        >
                             --
                         </span>
 
@@ -276,10 +316,14 @@
                 </div>
 
 
+                <!-- =========================================
+                     AI MESSAGES
+                ========================================== -->
 
-                <!-- AI Messages -->
-
-                <div class="chat-messages" id="chatMessages">
+                <div
+                    class="chat-messages"
+                    id="chatMessages"
+                >
 
                     <div class="ai-welcome">
 
@@ -302,16 +346,28 @@
                 </div>
 
 
+                <!-- =========================================
+                     AI QUESTION
+                ========================================== -->
 
-                <!-- AI Question -->
+                <form
+                    class="chat-form"
+                    id="chatForm"
+                >
 
-                <form class="chat-form" id="chatForm">
+                    <input
+                        type="text"
+                        id="chatInput"
+                        placeholder="Ask why your code is vulnerable..."
+                        autocomplete="off"
+                    >
 
-                    <input type="text" id="chatInput" placeholder="Ask why your code is vulnerable..."
-                        autocomplete="off">
 
-
-                    <button type="submit" class="send-btn" id="askAiBtn">
+                    <button
+                        type="submit"
+                        class="send-btn"
+                        id="askAiBtn"
+                    >
                         Send
                     </button>
 
@@ -322,12 +378,14 @@
         </section>
 
 
-
         <!-- =================================================
              SECURITY ISSUES
         ================================================== -->
 
-        <section class="analysis-section" id="securitySection">
+        <section
+            class="analysis-section"
+            id="securitySection"
+        >
 
             <div class="section-heading analyzer-heading">
 
@@ -351,16 +409,20 @@
                         Security Issues
                     </span>
 
-                    <span id="issueCount" class="issue-count">
+                    <span
+                        id="issueCount"
+                        class="issue-count"
+                    >
                         0 issues
                     </span>
 
                 </div>
 
 
-                <div class="issues-container" id="issuesContainer">
-
-                    <!-- JavaScript will insert issues here -->
+                <div
+                    class="issues-container"
+                    id="issuesContainer"
+                >
 
                     <div class="empty-state">
 
@@ -386,12 +448,14 @@
         </section>
 
 
-
         <!-- =================================================
              COMPLEXITY ANALYSIS
         ================================================== -->
 
-        <section class="analysis-section complexity-section" id="complexitySection">
+        <section
+            class="analysis-section complexity-section"
+            id="complexitySection"
+        >
 
             <div class="section-heading analyzer-heading">
 
@@ -430,7 +494,6 @@
                 </div>
 
 
-
                 <!-- SPACE -->
 
                 <div class="complexity-card">
@@ -449,7 +512,6 @@
                     </p>
 
                 </div>
-
 
 
                 <!-- BOTTLENECK -->
@@ -476,12 +538,14 @@
         </section>
 
 
-
         <!-- =================================================
              SECURE CODE SUGGESTION
         ================================================== -->
 
-        <section class="analysis-section secure-fix-section" id="secureFixSection">
+        <section
+            class="analysis-section secure-fix-section"
+            id="secureFixSection"
+        >
 
             <div class="section-heading analyzer-heading">
 
@@ -504,12 +568,12 @@
 
                 <div class="code-comparison-panel">
 
-                    <div class="comparison-header vulnerable-header">
-
+                    <div
+                        class="comparison-header vulnerable-header"
+                    >
                         <span>
                             Vulnerable Code
                         </span>
-
                     </div>
 
                     <pre id="vulnerableCode"><code>Select an issue to view the vulnerable code.</code></pre>
@@ -517,17 +581,16 @@
                 </div>
 
 
-
                 <!-- SECURE -->
 
                 <div class="code-comparison-panel">
 
-                    <div class="comparison-header secure-header">
-
+                    <div
+                        class="comparison-header secure-header"
+                    >
                         <span>
                             Secure Suggestion
                         </span>
-
                     </div>
 
                     <pre id="secureCode"><code>Secure code suggestions will appear here.</code></pre>
@@ -541,12 +604,15 @@
     </main>
 
 
-
     <!-- =====================================================
          LOADING OVERLAY
     ====================================================== -->
 
-    <div class="loading-overlay" id="analysisLoading" hidden>
+    <div
+        class="loading-overlay"
+        id="analysisLoading"
+        hidden
+    >
 
         <div class="loading-box">
 
@@ -565,16 +631,23 @@
     </div>
 
 
-
     <!-- =====================================================
          ERROR MESSAGE
     ====================================================== -->
 
-    <div class="analyzer-error" id="analyzerError" hidden>
+    <div
+        class="analyzer-error"
+        id="analyzerError"
+        hidden
+    >
 
         <div class="error-box">
 
-            <button type="button" id="closeErrorBtn" class="error-close">
+            <button
+                type="button"
+                id="closeErrorBtn"
+                class="error-close"
+            >
                 ×
             </button>
 
@@ -589,14 +662,6 @@
         </div>
 
     </div>
-
-
-
-    <!-- =====================================================
-         MONACO EDITOR LOADER
-    ====================================================== -->
-
-    <script src="https://cdn.jsdelivr.net/npm/monaco-editor@0.52.2/min/vs/loader.js"></script>
 
 
     <!-- =====================================================

@@ -1,25 +1,19 @@
 from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
+from app.database import Base, engine
+from app import models
+from app.api.analyze import router as analyze_router
+
+app = FastAPI(title="SECURECODE AI")
 
 
-app = FastAPI(
-    title="SecureCode AI",
-    description="AI-Powered Code Security Analyzer",
-    version="1.0.0"
-)
+@app.on_event("startup")
+def create_tables():
+    Base.metadata.create_all(bind=engine)
 
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+app.include_router(analyze_router)
 
 
 @app.get("/health")
 def health_check():
-    return {
-        "status": "ok"
-    }
+    return {"status": "ok"}

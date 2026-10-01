@@ -3,6 +3,8 @@
 ========================================================= */
 
 let monacoEditor = null;
+let vulnerabilityDecorations = [];
+let bottleneckDecorations = [];
 
 
 /* =========================================================
@@ -11,37 +13,46 @@ let monacoEditor = null;
 
 function initializeMonaco() {
 
+    const editorContainer = document.getElementById("monacoEditor");
+    const codeInput = document.getElementById("codeInput");
+
+    if (!editorContainer) {
+        console.error("Monaco container not found.");
+        return;
+    }
+
+    /*
+        Hide fallback textarea.
+
+        Monaco is the real editor.
+        We still keep the textarea in the HTML because
+        analyzer.js may use #codeInput.
+    */
+    if (codeInput) {
+        codeInput.style.display = "none";
+    }
+
     require.config({
         paths: {
             vs: "https://cdn.jsdelivr.net/npm/monaco-editor@0.52.2/min/vs"
         }
     });
 
-
     require(
         ["vs/editor/editor.main"],
         function () {
 
-            const editorContainer =
-                document.getElementById("monacoEditor");
-
-
-            if (!editorContainer) {
-                console.error("Monaco container not found.");
-                return;
-            }
-
-
-            monacoEditor = monaco.editor.create(
-                editorContainer,
-                {
-
-                    value: `# Write or paste your code here
+            const initialCode = `# Write or paste your code here
 
 def login(username):
     query = "SELECT * FROM users WHERE username = '" + username + "'"
     cursor.execute(query)
-`,
+`;
+
+            monacoEditor = monaco.editor.create(
+                editorContainer,
+                {
+                    value: initialCode,
 
                     language: "python",
 
@@ -59,6 +70,8 @@ def login(username):
 
                     tabSize: 4,
 
+                    insertSpaces: true,
+
                     wordWrap: "off",
 
                     scrollBeyondLastLine: false,
@@ -74,17 +87,62 @@ def login(username):
 
                     renderWhitespace: "selection",
 
-                    cursorBlinking: "smooth"
+                    cursorBlinking: "smooth",
+
+                    readOnly: false,
+
+                    domReadOnly: false
+                }
+            );
+
+
+            /* =================================================
+               SYNC MONACO → TEXTAREA
+            ================================================= */
+
+            function syncCodeInput() {
+
+                if (!monacoEditor || !codeInput) {
+                    return;
+                }
+
+                codeInput.value = monacoEditor.getValue();
+            }
+
+            syncCodeInput();
+
+
+            monacoEditor.onDidChangeModelContent(
+                function () {
+
+                    syncCodeInput();
 
                 }
             );
 
 
-            console.log("Monaco Editor initialized.");
+            /* =================================================
+               FORCE FOCUS / INTERACTION
+            ================================================= */
+
+            editorContainer.style.pointerEvents = "auto";
+
+            editorContainer.addEventListener(
+                "click",
+                function () {
+
+                    if (monacoEditor) {
+                        monacoEditor.focus();
+                    }
+
+                }
+            );
+
+
+            console.log("Monaco Editor initialized successfully.");
 
         }
     );
-
 }
 
 
@@ -98,19 +156,30 @@ function changeEditorLanguage(language) {
         return;
     }
 
-
     const model = monacoEditor.getModel();
 
     if (!model) {
         return;
     }
 
+    /*
+        Convert HTML select values to Monaco language IDs.
+    */
+
+    const languageMap = {
+        python: "python",
+        javascript: "javascript",
+        java: "java",
+        cpp: "cpp"
+    };
+
+    const monacoLanguage =
+        languageMap[language] || language;
 
     monaco.editor.setModelLanguage(
         model,
-        language
+        monacoLanguage
     );
-
 }
 
 
@@ -121,11 +190,16 @@ function changeEditorLanguage(language) {
 function getEditorCode() {
 
     if (!monacoEditor) {
-        return "";
+
+        const codeInput =
+            document.getElementById("codeInput");
+
+        return codeInput
+            ? codeInput.value
+            : "";
     }
 
     return monacoEditor.getValue();
-
 }
 
 
@@ -141,6 +215,16 @@ function setEditorCode(code) {
 
     monacoEditor.setValue(code || "");
 
+    /*
+        Keep fallback textarea synchronized.
+    */
+
+    const codeInput =
+        document.getElementById("codeInput");
+
+    if (codeInput) {
+        codeInput.value = code || "";
+    }
 }
 
 
@@ -156,6 +240,34 @@ function clearEditor() {
 
     monacoEditor.setValue("");
 
+    const codeInput =
+        document.getElementById("codeInput");
+
+    if (codeInput) {
+        codeInput.value = "";
+    }
+
+    /*
+        Remove old vulnerability decorations.
+    */
+
+    vulnerabilityDecorations =
+        monacoEditor.deltaDecorations(
+            vulnerabilityDecorations,
+            []
+        );
+
+    /*
+        Remove old bottleneck decorations.
+    */
+
+    bottleneckDecorations =
+        monacoEditor.deltaDecorations(
+            bottleneckDecorations,
+            []
+        );
+
+    console.log("Editor cleared.");
 }
 
 
@@ -169,23 +281,41 @@ function setIssueDecorations(issues) {
         return;
     }
 
+    /*
+        Remove previous vulnerability decorations.
+    */
+
+    vulnerabilityDecorations =
+        monacoEditor.deltaDecorations(
+            vulnerabilityDecorations,
+            []
+        );
+
+    if (!Array.isArray(issues)) {
+        return;
+    }
 
     const decorations = [];
 
+    issues.forEach(function (issue) {
 
-    issues.forEach(issue => {
-
-        if (!issue.line) {
+        if (!issue || !issue.line) {
             return;
         }
 
+        const lineNumber =
+            Number(issue.line);
+
+        if (lineNumber < 1) {
+            return;
+        }
 
         decorations.push({
 
             range: new monaco.Range(
-                issue.line,
+                lineNumber,
                 1,
-                issue.line,
+                lineNumber,
                 1
             ),
 
@@ -193,35 +323,38 @@ function setIssueDecorations(issues) {
 
                 isWholeLine: true,
 
-                className: "codeshield-vulnerability-line",
+                className:
+                    "codeshield-vulnerability-line",
 
                 glyphMarginClassName:
                     "codeshield-vulnerability-glyph",
 
                 overviewRuler: {
+
                     color: "#b91c1c",
+
                     position:
                         monaco.editor.OverviewRulerLane.Full
                 },
 
                 minimap: {
+
                     color: "#b91c1c",
+
                     position:
                         monaco.editor.MinimapPosition.Inline
                 }
-
             }
-
         });
 
     });
 
 
-    monacoEditor.deltaDecorations(
-        [],
-        decorations
-    );
-
+    vulnerabilityDecorations =
+        monacoEditor.deltaDecorations(
+            vulnerabilityDecorations,
+            decorations
+        );
 }
 
 
@@ -229,24 +362,44 @@ function setIssueDecorations(issues) {
    BOTTLENECK DECORATIONS
 ========================================================= */
 
-function setBottleneckDecoration(lineStart, lineEnd) {
+function setBottleneckDecoration(
+    lineStart,
+    lineEnd
+) {
 
     if (!monacoEditor) {
         return;
     }
 
+    /*
+        Remove previous bottleneck decorations.
+    */
+
+    bottleneckDecorations =
+        monacoEditor.deltaDecorations(
+            bottleneckDecorations,
+            []
+        );
 
     if (!lineStart || !lineEnd) {
         return;
     }
 
+    const start =
+        Number(lineStart);
+
+    const end =
+        Number(lineEnd);
+
+    if (start < 1 || end < start) {
+        return;
+    }
 
     const decorations = [];
 
-
     for (
-        let line = lineStart;
-        line <= lineEnd;
+        let line = start;
+        line <= end;
         line++
     ) {
 
@@ -265,19 +418,17 @@ function setBottleneckDecoration(lineStart, lineEnd) {
 
                 className:
                     "codeshield-bottleneck-line"
-
             }
-
         });
 
     }
 
 
-    monacoEditor.deltaDecorations(
-        [],
-        decorations
-    );
-
+    bottleneckDecorations =
+        monacoEditor.deltaDecorations(
+            bottleneckDecorations,
+            decorations
+        );
 }
 
 
@@ -287,7 +438,6 @@ function setBottleneckDecoration(lineStart, lineEnd) {
 
 const languageSelect =
     document.getElementById("language");
-
 
 if (languageSelect) {
 
@@ -301,7 +451,6 @@ if (languageSelect) {
 
         }
     );
-
 }
 
 
@@ -311,7 +460,6 @@ if (languageSelect) {
 
 const clearCodeBtn =
     document.getElementById("clearCodeBtn");
-
 
 if (clearCodeBtn) {
 
@@ -323,8 +471,23 @@ if (clearCodeBtn) {
 
         }
     );
-
 }
+
+
+/* =========================================================
+   WINDOW RESIZE
+========================================================= */
+
+window.addEventListener(
+    "resize",
+    function () {
+
+        if (monacoEditor) {
+            monacoEditor.layout();
+        }
+
+    }
+);
 
 
 /* =========================================================

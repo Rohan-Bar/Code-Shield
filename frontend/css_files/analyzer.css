@@ -250,30 +250,17 @@
 
 #codeInput {
     width: 100%;
-
-    min-height: 480px;
-
-    padding: 20px;
-
+    height: 380px;
+    box-sizing: border-box;
     border: none;
-
     outline: none;
-
     resize: none;
-
-    background: #111827;
-
-    color: #e5e7eb;
-
-    font-family:
-        "Cascadia Code",
-        "Fira Code",
-        Consolas,
-        monospace;
-
-    font-size: 13px;
-
-    line-height: 1.7;
+    padding: 20px;
+    font-family: Consolas, monospace;
+    font-size: 15px;
+    line-height: 1.6;
+    background: #ffffff;
+    color: #111827;
 }
 
 
