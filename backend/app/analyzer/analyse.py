@@ -1,4 +1,3 @@
-import re
 import uuid
 
 from fastapi import APIRouter
@@ -12,6 +11,7 @@ from app.schemas import (
     LLMIssueResponse,
 )
 from app.analyzer.security_analyzer import analyze_security
+from app.analyzer.complexity_analyzer import analyze_complexity
 from app.llm.service import LLMService
 
 
@@ -21,94 +21,38 @@ router = APIRouter(
 )
 
 
-# ---------------------------------------------------------
-# LLM SERVICE
-# ---------------------------------------------------------
-
 llm_service = LLMService(
     api_key=settings.GROQ_API_KEY,
     model=settings.GROQ_MODEL,
 )
 
 
-# ---------------------------------------------------------
-# COMPLEXITY ANALYSIS
-# ---------------------------------------------------------
-
-def analyze_complexity(code: str) -> ComplexityResponse:
-
-    lines = code.splitlines()
-
-    loop_count = len(
-        re.findall(r"\b(for|while)\b", code)
-    )
-
-    nested_loop = bool(
-        re.search(
-            r"(for|while)[\s\S]{0,500}(for|while)",
-            code,
-            re.IGNORECASE,
-        )
-    )
-
-    if nested_loop:
-        time_complexity = "O(n^2) estimated"
-    elif loop_count:
-        time_complexity = "O(n) estimated"
-    else:
-        time_complexity = "O(1) estimated"
-
-    space_complexity = "O(1) estimated"
-
-    bottleneck_lines = []
-
-    for line_number, line in enumerate(lines, start=1):
-        if re.search(
-            r"\b(for|while)\b",
-            line,
-            re.IGNORECASE,
-        ):
-            bottleneck_lines.append(line_number)
-
-    return ComplexityResponse(
-        time=time_complexity,
-        space=space_complexity,
-        bottleneck_lines=", ".join(
-            map(str, bottleneck_lines)
-        ),
-    )
-
-
-# ---------------------------------------------------------
-# ANALYZE ENDPOINT
-# ---------------------------------------------------------
-
 @router.post(
     "/analyze",
-    response_model=AnalyzeResponse,
+    response_model=AnalyzeResponse
 )
 def analyze_code(request: AnalyzeRequest):
 
-    # -----------------------------------------------------
+    # =====================================================
     # 1. STATIC SECURITY ANALYSIS
-    # -----------------------------------------------------
+    # =====================================================
 
-    static_issues = analyze_security(
-        request.code
-    )
+    static_issues = analyze_security(request.code)
 
-    # -----------------------------------------------------
-    # 2. AI SECURITY ANALYSIS
-    # -----------------------------------------------------
+
+    # =====================================================
+    # 2. LLM SECURITY ANALYSIS
+    # =====================================================
 
     llm_result = llm_service.analyze_code(
         code=request.code,
         language=request.language,
     )
 
-    # -----------------------------------------------------
-    # 3. CONVERT LLM RESULTS TO API RESPONSE
-    # -----------------------------------------------------
+
+    # =====================================================
+    # 3. CONVERT LLM ISSUES TO API RESPONSE FORMAT
+    # =====================================================
 
     llm_issues = []
 
@@ -135,33 +79,66 @@ def analyze_code(request: AnalyzeRequest):
             )
         )
 
-    # -----------------------------------------------------
-    # 4. COMPLEXITY
-    # -----------------------------------------------------
 
-    complexity = analyze_complexity(
+    # =====================================================
+    # 4. COMPLEXITY ANALYSIS
+    # =====================================================
+
+    complexity_result = analyze_complexity(
         request.code
     )
 
-    # -----------------------------------------------------
-    # 5. DIFF
-    # -----------------------------------------------------
+    complexity = ComplexityResponse(
+        time=complexity_result["time"],
+        space=complexity_result["space"],
+        bottleneck_lines=complexity_result[
+            "bottleneck_lines"
+        ],
+    )
 
-    vulnerable_lines = request.code.splitlines()
 
-    secure_lines = request.code.splitlines()
+    # =====================================================
+    # 5. CREATE SECURE CODE
+    # =====================================================
 
-    # -----------------------------------------------------
+    vulnerable_code = request.code.splitlines()
+
+    secure_code = request.code
+
+
+    # Use the first LLM-generated secure code
+    # when the LLM has provided one.
+
+    if llm_result.issues:
+
+        generated_secure_code = (
+            llm_result.issues[0].secure_code
+        )
+
+        if generated_secure_code.strip():
+
+            secure_code = generated_secure_code
+
+
+    secure_code_lines = secure_code.splitlines()
+
+
+    # =====================================================
     # 6. FINAL RESPONSE
-    # -----------------------------------------------------
+    # =====================================================
 
     return AnalyzeResponse(
+
         analysis_id=str(uuid.uuid4()),
+
         issues=static_issues,
+
         llm_issues=llm_issues,
+
         complexity=complexity,
+
         diff=DiffResponse(
-            vulnerable=vulnerable_lines,
-            secure=secure_lines,
+            vulnerable=vulnerable_code,
+            secure=secure_code_lines,
         ),
     )

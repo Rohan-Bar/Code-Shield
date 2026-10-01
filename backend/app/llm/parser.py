@@ -5,13 +5,18 @@ from .schemas import LLMAnalysisResult
 
 def parse_llm_response(raw_response: str) -> LLMAnalysisResult:
     """
-    Convert the raw LLM response into validated CodeShield data.
+    Convert the raw LLM response into validated
+    CodeShield security-analysis data.
     """
 
     raw_response = raw_response.strip()
 
-    # Remove markdown code fences if the model accidentally adds them.
+    # -----------------------------------------------------
+    # REMOVE MARKDOWN CODE FENCES IF THE LLM ADDS THEM
+    # -----------------------------------------------------
+
     if raw_response.startswith("```"):
+
         lines = raw_response.splitlines()
 
         if lines[0].startswith("```"):
@@ -22,18 +27,31 @@ def parse_llm_response(raw_response: str) -> LLMAnalysisResult:
 
         raw_response = "\n".join(lines).strip()
 
+    # -----------------------------------------------------
+    # PARSE JSON
+    # -----------------------------------------------------
+
     try:
+
         data = json.loads(raw_response)
 
     except json.JSONDecodeError as exc:
+
         raise ValueError(
             "LLM returned invalid JSON."
         ) from exc
 
+    # -----------------------------------------------------
+    # VALIDATE JSON STRUCTURE
+    # -----------------------------------------------------
+
     try:
+
         return LLMAnalysisResult.model_validate(data)
 
     except Exception as exc:
+
         raise ValueError(
-            "LLM response does not match the expected CodeShield format."
+            "LLM response does not match the expected "
+            "CodeShield format."
         ) from exc

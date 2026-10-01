@@ -3,65 +3,114 @@ import re
 
 def analyze_complexity(code: str):
     """
-    Simple heuristic complexity analyzer.
+    Estimate time and space complexity using simple loop analysis.
 
-    Detects nested loops and estimates:
-    0 loops  -> O(1)
-    1 loop   -> O(n)
-    2 loops  -> O(n²)
-    3+ loops -> O(n³)
+    Rules:
+        No loops        -> O(1)
+        One loop        -> O(n)
+        Nested 2 loops  -> O(n²)
+        Nested 3+ loops -> O(n³)
+
+    Also reports the approximate lines containing
+    the deepest loop nesting.
     """
 
     lines = code.splitlines()
 
     max_nesting = 0
-    current_nesting = 0
+    bottleneck_lines = []
 
-    bottleneck_start = None
-    bottleneck_end = None
+    # Stack containing indentation levels of active loops.
+    loop_stack = []
 
     for line_number, line in enumerate(lines, start=1):
+
         stripped = line.strip()
 
-        # Ignore blank lines
+        # Ignore empty lines
         if not stripped:
             continue
 
-        # Basic Python loop detection
-        if re.match(r"^(for|while)\b", stripped):
-            current_nesting += 1
+        indentation = len(line) - len(line.lstrip())
+
+        # Remove loops that are no longer active.
+        while loop_stack and indentation <= loop_stack[-1][0]:
+            loop_stack.pop()
+
+        # Detect Python-style for/while loops.
+        is_loop = bool(
+            re.match(
+                r"^(for|while)\b",
+                stripped
+            )
+        )
+
+        if is_loop:
+
+            loop_stack.append(
+                (indentation, line_number)
+            )
+
+            current_nesting = len(loop_stack)
 
             if current_nesting > max_nesting:
+
                 max_nesting = current_nesting
-                bottleneck_start = line_number
 
-            bottleneck_end = line_number
+                bottleneck_lines = [
+                    item[1]
+                    for item in loop_stack
+                ]
 
-        # Basic indentation-based nesting reduction
-        elif current_nesting > 0:
-            indentation = len(line) - len(line.lstrip())
-
-            if indentation == 0:
-                current_nesting = 0
+    # =====================================================
+    # TIME COMPLEXITY
+    # =====================================================
 
     if max_nesting == 0:
+
         time_complexity = "O(1)"
-        bottleneck_lines = ""
 
     elif max_nesting == 1:
+
         time_complexity = "O(n)"
-        bottleneck_lines = f"{bottleneck_start}-{bottleneck_end}"
 
     elif max_nesting == 2:
+
         time_complexity = "O(n²)"
-        bottleneck_lines = f"{bottleneck_start}-{bottleneck_end}"
 
     else:
+
         time_complexity = "O(n³)"
-        bottleneck_lines = f"{bottleneck_start}-{bottleneck_end}"
+
+
+    # =====================================================
+    # BOTTLENECK LINES
+    # =====================================================
+
+    if bottleneck_lines:
+
+        bottleneck_lines_text = ", ".join(
+            map(str, bottleneck_lines)
+        )
+
+    else:
+
+        bottleneck_lines_text = ""
+
+
+    # =====================================================
+    # SPACE COMPLEXITY
+    # =====================================================
+
+    # This is a simplified estimate.
+    # A complete space-complexity analyzer would need
+    # deeper AST/data-flow analysis.
+
+    space_complexity = "O(1)"
+
 
     return {
         "time": time_complexity,
-        "space": "O(1)",
-        "bottleneck_lines": bottleneck_lines,
+        "space": space_complexity,
+        "bottleneck_lines": bottleneck_lines_text,
     }

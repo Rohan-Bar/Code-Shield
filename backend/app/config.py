@@ -6,11 +6,12 @@ class Settings(BaseSettings):
     DATABASE_URL: str
 
     GROQ_API_KEY: str
+
     GROQ_MODEL: str = "openai/gpt-oss-20b"
 
     model_config = SettingsConfigDict(
         env_file=".env",
-        extra="ignore"
+        extra="ignore",
     )
 
 
