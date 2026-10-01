@@ -1,9 +1,27 @@
 /* =========================================================
    CODESHIELD — ANALYZER
-   Connects Monaco Editor → API → Results UI
+   Code Analysis + AI Chat
 ========================================================= */
 
-const analyzeBtn = document.getElementById("analyzeBtn");
+
+/* =========================================================
+   ELEMENTS
+========================================================= */
+
+const analyzeBtn =
+    document.getElementById("analyzeBtn");
+
+const chatForm =
+    document.getElementById("chatForm");
+
+const chatInput =
+    document.getElementById("chatInput");
+
+const askAiBtn =
+    document.getElementById("askAiBtn");
+
+const chatMessages =
+    document.getElementById("chatMessages");
 
 
 /* =========================================================
@@ -12,16 +30,16 @@ const analyzeBtn = document.getElementById("analyzeBtn");
 
 async function analyzeCode() {
 
-    // Get code from Monaco if available
     let code = "";
 
     if (typeof getEditorCode === "function") {
         code = getEditorCode();
     }
 
-    // Fallback to textarea
     if (!code) {
-        const codeInput = document.getElementById("codeInput");
+
+        const codeInput =
+            document.getElementById("codeInput");
 
         if (codeInput) {
             code = codeInput.value;
@@ -31,165 +49,207 @@ async function analyzeCode() {
     code = code.trim();
 
     if (!code) {
-        alert("Please paste or type some code first.");
+        alert(
+            "Please paste or type some code first."
+        );
         return;
     }
 
+    const languageElement =
+        document.getElementById("language");
 
-    /* -----------------------------------------------------
-       Get selected language
-    ----------------------------------------------------- */
-
-    const languageElement = document.getElementById("language");
-
-    const language = languageElement
-        ? languageElement.value
-        : "python";
-
-
-    /* -----------------------------------------------------
-       Disable button
-    ----------------------------------------------------- */
+    const language =
+        languageElement
+            ? languageElement.value
+            : "python";
 
     if (analyzeBtn) {
         analyzeBtn.disabled = true;
         analyzeBtn.textContent = "Analyzing...";
     }
 
-
     try {
 
-        console.log("Sending code to backend...");
-        console.log("Language:", language);
+        console.log(
+            "CodeShield analysis started."
+        );
 
+        const data =
+            await analyzeCodeAPI(
+                code,
+                language
+            );
 
-        /* -------------------------------------------------
-           Call API.js
-        ------------------------------------------------- */
-
-        const data = await analyzeCodeAPI(code, language);
-
-
-        console.log("Backend analysis:", data);
-
-
-        /* -------------------------------------------------
-           Display results
-        ------------------------------------------------- */
+        console.log(
+            "CodeShield API response:",
+            data
+        );
 
         displayResults(data);
 
-
     } catch (error) {
 
-        console.error("Analysis failed:", error);
+        console.error(
+            "CodeShield analysis failed:",
+            error
+        );
 
         alert(
-            "Could not connect to the backend.\n\n" +
-            "Make sure FastAPI is running on http://127.0.0.1:8000"
+            "Analysis failed.\n\n" +
+            error.message
         );
 
     } finally {
 
         if (analyzeBtn) {
-            analyzeBtn.disabled = false;
-            analyzeBtn.textContent = "Analyze Code";
-        }
 
+            analyzeBtn.disabled = false;
+
+            analyzeBtn.textContent =
+                "Analyze Code";
+        }
     }
 }
 
 
 /* =========================================================
-   DISPLAY RESULTS
+   DISPLAY ANALYSIS RESULTS
 ========================================================= */
 
 function displayResults(data) {
 
-    console.log("Issues:", data.issues);
-    console.log("Complexity:", data.complexity);
-    console.log("Diff:", data.diff);
+    if (!data) {
+        return;
+    }
+
+    const staticIssues =
+        Array.isArray(data.issues)
+            ? data.issues
+            : [];
+
+    const llmIssues =
+        Array.isArray(data.llm_issues)
+            ? data.llm_issues
+            : [];
+
+    const displayedIssues =
+        staticIssues.length > 0
+            ? staticIssues
+            : llmIssues.map(
+                (issue, index) => ({
+                    id:
+                        `llm-${index + 1}`,
+
+                    type:
+                        issue.type ||
+                        "AI Security Issue",
+
+                    severity:
+                        issue.severity ||
+                        "UNKNOWN",
+
+                    line:
+                        issue.line ||
+                        null,
+
+                    description:
+                        issue.description ||
+                        "Potential security issue detected.",
+
+                    vulnerable_snippet:
+                        issue.evidence ||
+                        ""
+                })
+            );
 
 
     /* =====================================================
-       ISSUES
+       ISSUE CARDS
     ===================================================== */
 
     const issueContainer =
-        document.getElementById("issuesList");
+        document.getElementById(
+            "issuesContainer"
+        );
 
     if (issueContainer) {
 
         issueContainer.innerHTML = "";
 
-        const issues = Array.isArray(data.issues)
-            ? data.issues
-            : [];
-
-
-        /* No vulnerabilities */
-
-        if (issues.length === 0) {
+        if (
+            displayedIssues.length === 0
+        ) {
 
             issueContainer.innerHTML = `
                 <div class="no-issues">
-                    ✅ No vulnerabilities found
+                    No vulnerabilities found
                 </div>
             `;
 
-        }
+        } else {
 
-        /* Vulnerabilities found */
+            displayedIssues.forEach(
+                (issue) => {
 
-        else {
+                    const card =
+                        document.createElement(
+                            "div"
+                        );
 
-            issues.forEach((issue) => {
+                    card.className =
+                        "issue-card";
 
-                const card =
-                    document.createElement("div");
+                    const severity =
+                        String(
+                            issue.severity ||
+                            "UNKNOWN"
+                        ).toUpperCase();
 
-                card.className = "issue-card";
+                    card.innerHTML = `
+                        <div class="issue-header">
 
+                            <strong>
+                                ${escapeHTML(
+                                    issue.type ||
+                                    "Security Issue"
+                                )}
+                            </strong>
 
-                const severity =
-                    issue.severity || "UNKNOWN";
+                            <span class="severity ${severity.toLowerCase()}">
+                                ${escapeHTML(
+                                    severity
+                                )}
+                            </span>
 
+                        </div>
 
-                card.innerHTML = `
-                    <div class="issue-header">
+                        <p>
+                            <strong>Line:</strong>
+                            ${escapeHTML(
+                                issue.line ||
+                                "N/A"
+                            )}
+                        </p>
 
-                        <strong>
-                            ${escapeHTML(issue.type || "Security Issue")}
-                        </strong>
+                        <p>
+                            ${escapeHTML(
+                                issue.description ||
+                                "No description available."
+                            )}
+                        </p>
 
-                        <span class="severity ${severity.toLowerCase()}">
-                            ${escapeHTML(severity)}
-                        </span>
+                        <pre><code>${escapeHTML(
+                            issue.vulnerable_snippet ||
+                            issue.evidence ||
+                            ""
+                        )}</code></pre>
+                    `;
 
-                    </div>
-
-                    <p>
-                        <strong>Line:</strong>
-                        ${issue.line || "N/A"}
-                    </p>
-
-                    <p>
-                        ${escapeHTML(
-                            issue.description ||
-                            "No description available."
-                        )}
-                    </p>
-
-                    <pre><code>${escapeHTML(
-                        issue.vulnerable_snippet || ""
-                    )}</code></pre>
-                `;
-
-
-                issueContainer.appendChild(card);
-
-            });
-
+                    issueContainer.appendChild(
+                        card
+                    );
+                }
+            );
         }
     }
 
@@ -199,50 +259,54 @@ function displayResults(data) {
     ===================================================== */
 
     const issueCount =
-        document.getElementById("issueCount");
+        document.getElementById(
+            "issueCount"
+        );
 
     if (issueCount) {
 
-        const count =
-            Array.isArray(data.issues)
-                ? data.issues.length
-                : 0;
-
-        issueCount.textContent = count;
-
+        issueCount.textContent =
+            displayedIssues.length;
     }
 
 
     /* =====================================================
-       AI ISSUE SUMMARY
+       AI SUMMARY
     ===================================================== */
 
-    if (data.issues && data.issues.length > 0) {
+    const summaryIssue =
+        llmIssues.length > 0
+            ? llmIssues[0]
+            : displayedIssues.length > 0
+                ? displayedIssues[0]
+                : null;
 
-        const firstIssue = data.issues[0];
-
+    if (summaryIssue) {
 
         const severityElement =
-            document.getElementById("aiIssueSeverity");
+            document.getElementById(
+                "aiIssueSeverity"
+            );
 
         if (severityElement) {
 
             severityElement.textContent =
-                firstIssue.severity || "UNKNOWN";
-
+                summaryIssue.severity ||
+                "UNKNOWN";
         }
 
 
         const titleElement =
-            document.getElementById("aiIssueTitle");
+            document.getElementById(
+                "aiIssueTitle"
+            );
 
         if (titleElement) {
 
             titleElement.textContent =
-                firstIssue.type || "Security Issue";
-
+                summaryIssue.type ||
+                "Security Issue";
         }
-
     }
 
 
@@ -253,136 +317,480 @@ function displayResults(data) {
     if (data.complexity) {
 
         const timeElement =
-            document.getElementById("timeComplexity");
+            document.getElementById(
+                "timeComplexity"
+            );
 
         if (timeElement) {
 
             timeElement.textContent =
-                data.complexity.time || "N/A";
-
+                data.complexity.time ||
+                "N/A";
         }
 
 
         const spaceElement =
-            document.getElementById("spaceComplexity");
+            document.getElementById(
+                "spaceComplexity"
+            );
 
         if (spaceElement) {
 
             spaceElement.textContent =
-                data.complexity.space || "N/A";
-
+                data.complexity.space ||
+                "N/A";
         }
 
 
         const bottleneckElement =
-            document.getElementById("bottleneckLines");
+            document.getElementById(
+                "bottleneckLines"
+            );
 
         if (bottleneckElement) {
 
             bottleneckElement.textContent =
-                data.complexity.bottleneck_lines || "N/A";
-
+                data.complexity.bottleneck_lines ||
+                "N/A";
         }
-
     }
 
 
     /* =====================================================
-       SECURE CODE DIFF
+       DIFF
     ===================================================== */
 
     if (data.diff) {
 
-        const diffVulnerable =
-            document.getElementById("vulnerableCode");
+        const vulnerableElement =
+            document.getElementById(
+                "vulnerableCode"
+            );
 
-        if (diffVulnerable) {
+        if (vulnerableElement) {
 
             const vulnerable =
-                Array.isArray(data.diff.vulnerable)
-                    ? data.diff.vulnerable.join("\n")
-                    : data.diff.vulnerable || "";
+                Array.isArray(
+                    data.diff.vulnerable
+                )
+                    ? data.diff.vulnerable.join(
+                        "\n"
+                    )
+                    : data.diff.vulnerable ||
+                      "";
 
-            diffVulnerable.textContent =
+            vulnerableElement.textContent =
                 vulnerable;
-
         }
 
 
-        const diffSecure =
-            document.getElementById("secureCode");
+        const secureElement =
+            document.getElementById(
+                "secureCode"
+            );
 
-        if (diffSecure) {
+        if (secureElement) {
 
             const secure =
-                Array.isArray(data.diff.secure)
-                    ? data.diff.secure.join("\n")
-                    : data.diff.secure || "";
+                Array.isArray(
+                    data.diff.secure
+                )
+                    ? data.diff.secure.join(
+                        "\n"
+                    )
+                    : data.diff.secure ||
+                      "";
 
-            diffSecure.textContent =
+            secureElement.textContent =
                 secure;
-
         }
-
     }
 
 
     /* =====================================================
-       MONACO ISSUE HIGHLIGHTING
+       EDITOR DECORATIONS
     ===================================================== */
 
     if (
-        typeof setIssueDecorations === "function" &&
-        Array.isArray(data.issues)
+        typeof setIssueDecorations ===
+        "function"
     ) {
 
-        setIssueDecorations(data.issues);
-
+        setIssueDecorations(
+            displayedIssues
+        );
     }
 
 
-    /* =====================================================
-       MONACO BOTTLENECK HIGHLIGHTING
-    ===================================================== */
-
     if (
-        typeof setBottleneckDecoration === "function" &&
+        typeof setBottleneckDecoration ===
+        "function" &&
         data.complexity
     ) {
 
         setBottleneckDecoration(
             data.complexity.bottleneck_lines
         );
-
     }
-
 }
 
 
 /* =========================================================
-   ESCAPE HTML
-   Prevents code/description from being interpreted as HTML
+   CHATBOT
+========================================================= */
+
+async function handleChatSubmit(
+    event
+) {
+
+    /*
+       VERY IMPORTANT:
+       Stop the HTML form from
+       reloading the page.
+    */
+
+    if (event) {
+        event.preventDefault();
+    }
+
+
+    if (!chatInput) {
+
+        console.error(
+            "chatInput not found."
+        );
+
+        return;
+    }
+
+
+    const question =
+        chatInput.value.trim();
+
+
+    if (!question) {
+
+        return;
+    }
+
+
+    /*
+       Find the currently detected
+       vulnerability.
+    */
+
+    const severityElement =
+        document.getElementById(
+            "aiIssueSeverity"
+        );
+
+    const titleElement =
+        document.getElementById(
+            "aiIssueTitle"
+        );
+
+
+    const vulnerabilityType =
+        titleElement &&
+        titleElement.textContent.trim()
+            ? titleElement.textContent.trim()
+            : "Security Vulnerability";
+
+
+    const vulnerabilityId =
+        vulnerabilityType;
+
+
+    /*
+       Show user's question
+    */
+
+    addChatMessage(
+        question,
+        "user"
+    );
+
+
+    /*
+       Clear input
+    */
+
+    chatInput.value = "";
+
+
+    /*
+       Disable button
+    */
+
+    if (askAiBtn) {
+
+        askAiBtn.disabled = true;
+
+        askAiBtn.textContent =
+            "Thinking...";
+    }
+
+
+    try {
+
+        console.log(
+            "Sending question to CodeShield AI:",
+            question
+        );
+
+
+        const response =
+            await explainVulnerabilityAPI(
+                vulnerabilityId,
+                question
+            );
+
+
+        console.log(
+            "CodeShield AI response:",
+            response
+        );
+
+
+        const answer =
+            response &&
+            response.answer
+                ? response.answer
+                : "AI returned no answer.";
+
+
+        addChatMessage(
+            answer,
+            "ai"
+        );
+
+
+    } catch (error) {
+
+        console.error(
+            "Chatbot error:",
+            error
+        );
+
+
+        addChatMessage(
+            "Sorry, I could not get an answer from CodeShield AI.\n\n" +
+            error.message,
+            "ai"
+        );
+
+
+    } finally {
+
+        if (askAiBtn) {
+
+            askAiBtn.disabled = false;
+
+            askAiBtn.textContent =
+                "Ask AI";
+        }
+    }
+}
+
+
+/* =========================================================
+   ADD CHAT MESSAGE
+========================================================= */
+
+function addChatMessage(
+    message,
+    sender
+) {
+
+    if (!chatMessages) {
+
+        console.error(
+            "chatMessages element not found."
+        );
+
+        return;
+    }
+
+
+    const messageElement =
+        document.createElement(
+            "div"
+        );
+
+
+    messageElement.className =
+        `chat-message ${sender}`;
+
+
+   if (sender === "ai") {
+    messageElement.innerHTML =
+        formatAIResponse(message);
+} else {
+    messageElement.textContent =
+        message;
+}
+
+    chatMessages.appendChild(
+        messageElement
+    );
+
+
+    chatMessages.scrollTop =
+        chatMessages.scrollHeight;
+}
+
+
+function formatAIResponse(message) {
+
+    if (!message) {
+        return "";
+    }
+
+    let html = escapeHTML(message);
+
+    /* =====================================================
+       CODE BLOCKS
+    ===================================================== */
+
+    html = html.replace(
+        /```(?:python|javascript|java|cpp|c|sql|bash|json)?\s*([\s\S]*?)```/gi,
+        function(match, code) {
+
+            return `
+                <pre class="ai-code-block"><code>${code.trim()}</code></pre>
+            `;
+        }
+    );
+
+
+    /* =====================================================
+       INLINE CODE
+    ===================================================== */
+
+    html = html.replace(
+        /`([^`]+)`/g,
+        "<code class=\"ai-inline-code\">$1</code>"
+    );
+
+
+    /* =====================================================
+       HEADINGS
+    ===================================================== */
+
+    html = html.replace(
+        /^### (.+)$/gm,
+        "<h4>$1</h4>"
+    );
+
+    html = html.replace(
+        /^## (.+)$/gm,
+        "<h3>$1</h3>"
+    );
+
+    html = html.replace(
+        /^\*\*(.+?)\*\*$/gm,
+        "<h3>$1</h3>"
+    );
+
+
+    /* =====================================================
+       BOLD TEXT
+    ===================================================== */
+
+    html = html.replace(
+        /\*\*(.+?)\*\*/g,
+        "<strong>$1</strong>"
+    );
+
+
+    /* =====================================================
+       BULLET POINTS
+    ===================================================== */
+
+    html = html.replace(
+        /^[•*-]\s+(.+)$/gm,
+        "<li>$1</li>"
+    );
+
+    html = html.replace(
+        /(<li>.*<\/li>)/gs,
+        "<ul>$1</ul>"
+    );
+
+
+    /* =====================================================
+       NUMBERED LIST
+    ===================================================== */
+
+    html = html.replace(
+        /^\d+\.\s+(.+)$/gm,
+        "<li>$1</li>"
+    );
+
+
+    /* =====================================================
+       NEWLINES
+    ===================================================== */
+
+    html = html.replace(
+        /\n{2,}/g,
+        "<br><br>"
+    );
+
+    html = html.replace(
+        /\n/g,
+        "<br>"
+    );
+
+
+    return html;
+}
+
+/* =========================================================
+   HTML ESCAPING
 ========================================================= */
 
 function escapeHTML(value) {
 
-    if (value === null || value === undefined) {
+    if (
+        value === null ||
+        value === undefined
+    ) {
+
         return "";
     }
 
-    return String(value)
-        .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;")
-        .replace(/"/g, "&quot;")
-        .replace(/'/g, "&#039;");
 
+    return String(value)
+        .replace(
+            /&/g,
+            "&amp;"
+        )
+        .replace(
+            /</g,
+            "&lt;"
+        )
+        .replace(
+            />/g,
+            "&gt;"
+        )
+        .replace(
+            /"/g,
+            "&quot;"
+        )
+        .replace(
+            /'/g,
+            "&#039;"
+        );
 }
 
 
 /* =========================================================
-   ANALYZE BUTTON
+   EVENT LISTENERS
 ========================================================= */
+
+
+/* Analyze button */
 
 if (analyzeBtn) {
 
@@ -390,5 +798,38 @@ if (analyzeBtn) {
         "click",
         analyzeCode
     );
-
 }
+
+
+/* Chat form */
+
+if (chatForm) {
+
+    chatForm.addEventListener(
+        "submit",
+        handleChatSubmit
+    );
+}
+
+
+/*
+   Extra protection:
+   If Ask AI is a button outside
+   the form, handle its click too.
+*/
+
+if (
+    askAiBtn &&
+    !chatForm
+) {
+
+    askAiBtn.addEventListener(
+        "click",
+        handleChatSubmit
+    );
+}
+
+
+console.log(
+    "CodeShield analyzer + chatbot loaded."
+);

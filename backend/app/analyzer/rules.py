@@ -33,28 +33,34 @@ def check_dangerous_functions(code: str):
 
     for line_number, line in enumerate(
         code.splitlines(),
-        start=1
+        start=1,
     ):
 
         for pattern, vulnerability_type, severity in patterns:
 
-            if re.search(pattern, line):
+            if re.search(
+                pattern,
+                line,
+                re.IGNORECASE,
+            ):
 
-                findings.append({
-                    "id": (
-                        f"rule-{line_number}-"
-                        f"{vulnerability_type.lower().replace(' ', '-')}"
-                    ),
-                    "type": vulnerability_type,
-                    "severity": severity,
-                    "line": line_number,
-                    "description": (
-                        f"Potential "
-                        f"{vulnerability_type.lower()} "
-                        "detected in this line."
-                    ),
-                    "vulnerable_snippet": line.strip(),
-                })
+                findings.append(
+                    {
+                        "id": (
+                            f"rule-{line_number}-"
+                            f"{vulnerability_type.lower().replace(' ', '-')}"
+                        ),
+                        "type": vulnerability_type,
+                        "severity": severity,
+                        "line": line_number,
+                        "description": (
+                            f"Potential "
+                            f"{vulnerability_type.lower()} "
+                            f"detected in this line."
+                        ),
+                        "vulnerable_snippet": line.strip(),
+                    }
+                )
 
     return findings
 
@@ -68,42 +74,35 @@ def check_hardcoded_secrets(code: str):
     findings = []
 
     pattern = re.compile(
-        r"\b("
-        r"api_key|"
-        r"apikey|"
-        r"password|"
-        r"passwd|"
-        r"secret_key|"
-        r"token"
-        r")\b"
+        r"\b(api_key|apikey|password|passwd|secret_key|token)\b"
         r"\s*=\s*"
-        r"['\"]"
-        r"[^'\"]{6,}"
-        r"['\"]",
+        r"""['"][^'"]{6,}['"]""",
         re.IGNORECASE,
     )
 
     for line_number, line in enumerate(
         code.splitlines(),
-        start=1
+        start=1,
     ):
 
         if pattern.search(line):
 
-            findings.append({
-                "id": (
-                    f"rule-{line_number}-"
-                    "hardcoded-secret"
-                ),
-                "type": "Hardcoded Secret",
-                "severity": "HIGH",
-                "line": line_number,
-                "description": (
-                    "A possible hardcoded credential "
-                    "or secret was detected in source code."
-                ),
-                "vulnerable_snippet": line.strip(),
-            })
+            findings.append(
+                {
+                    "id": (
+                        f"rule-{line_number}-"
+                        "hardcoded-secret"
+                    ),
+                    "type": "Hardcoded Secret",
+                    "severity": "HIGH",
+                    "line": line_number,
+                    "description": (
+                        "A possible hardcoded credential "
+                        "or secret was detected in source code."
+                    ),
+                    "vulnerable_snippet": line.strip(),
+                }
+            )
 
     return findings
 
@@ -117,42 +116,41 @@ def check_command_injection(code: str):
     findings = []
 
     pattern = re.compile(
-        r"subprocess\."
-        r"(run|call|Popen)"
-        r"\s*\("
-        r".*"
-        r"shell\s*=\s*True",
+        r"\bsubprocess\.(run|call|Popen)\s*\("
+        r".*?\bshell\s*=\s*True",
         re.IGNORECASE,
     )
 
     for line_number, line in enumerate(
         code.splitlines(),
-        start=1
+        start=1,
     ):
 
         if pattern.search(line):
 
-            findings.append({
-                "id": (
-                    f"rule-{line_number}-"
-                    "command-injection"
-                ),
-                "type": "Command Injection",
-                "severity": "HIGH",
-                "line": line_number,
-                "description": (
-                    "A subprocess call uses shell=True, "
-                    "which can allow command injection "
-                    "when input is untrusted."
-                ),
-                "vulnerable_snippet": line.strip(),
-            })
+            findings.append(
+                {
+                    "id": (
+                        f"rule-{line_number}-"
+                        "command-injection"
+                    ),
+                    "type": "Command Injection",
+                    "severity": "HIGH",
+                    "line": line_number,
+                    "description": (
+                        "A subprocess call uses shell=True, "
+                        "which can allow command injection "
+                        "when input is untrusted."
+                    ),
+                    "vulnerable_snippet": line.strip(),
+                }
+            )
 
     return findings
 
 
 # =========================================================
-# RUN ALL STATIC SECURITY RULES
+# RUN ALL RULES
 # =========================================================
 
 def run_all_rules(code: str):

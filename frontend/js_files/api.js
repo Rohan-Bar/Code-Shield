@@ -1,7 +1,6 @@
-```javascript
 /* =========================================================
    CODESHIELD — API.JS
-   ONLY FILE THAT HANDLES BACKEND REQUESTS
+   Handles all communication with FastAPI
 ========================================================= */
 
 const API_BASE_URL = "http://127.0.0.1:8000";
@@ -13,47 +12,56 @@ const API_BASE_URL = "http://127.0.0.1:8000";
 
 async function analyzeCodeAPI(code, language) {
 
-    try {
+    const response = await fetch(
+        `${API_BASE_URL}/api/analyze`,
+        {
+            method: "POST",
 
-        const response = await fetch(
-            ${API_BASE_URL}/api/analyze,
-            {
-                method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
 
-                headers: {
-                    "Content-Type": "application/json"
-                },
+            body: JSON.stringify({
+                code: code,
+                language: language
+            })
+        }
+    );
 
-                body: JSON.stringify({
-                    code: code,
-                    language: language
-                })
+
+    if (!response.ok) {
+
+        let message =
+            `Server error: ${response.status}`;
+
+        try {
+
+            const errorData =
+                await response.json();
+
+            if (errorData.detail) {
+                message += ` - ${errorData.detail}`;
             }
-        );
 
-        if (!response.ok) {
-
-            throw new Error(
-                Server error: ${response.status}
-            );
-
+        } catch (error) {
+            // Ignore JSON parsing error
         }
 
-        const data = await response.json();
-
-        console.log("Analysis result:", data);
-
-        return data;
-
-    } catch (error) {
-
-        console.error(
-            "Analyze API error:",
-            error
-        );
-
-        throw error;
+        throw new Error(message);
     }
+
+
+    const data =
+        await response.json();
+
+
+    console.log(
+        "CodeShield API response:",
+        data
+    );
+
+
+    return data;
 }
 
 
@@ -66,127 +74,110 @@ async function explainVulnerabilityAPI(
     question
 ) {
 
-    try {
+    const response = await fetch(
+        `${API_BASE_URL}/api/explain`,
+        {
+            method: "POST",
 
-        const response = await fetch(
-            ${API_BASE_URL}/api/explain,
-            {
-                method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
 
-                headers: {
-                    "Content-Type": "application/json"
-                },
-
-                body: JSON.stringify({
-                    vulnerability_id: vulnerabilityId,
-                    question: question
-                })
-            }
-        );
-
-        if (!response.ok) {
-
-            throw new Error(
-                Server error: ${response.status}
-            );
-
+            body: JSON.stringify({
+                vulnerability_id: vulnerabilityId,
+                question: question
+            })
         }
+    );
 
-        const data = await response.json();
 
-        console.log(
-            "Explanation result:",
-            data
-        );
+    if (!response.ok) {
 
-        return data;
+        let message =
+            `Server error: ${response.status}`;
 
-    } catch (error) {
+        try {
 
-        console.error(
-            "Explain API error:",
-            error
-        );
+            const errorData =
+                await response.json();
 
-        throw error;
+            if (errorData.detail) {
+                message += ` - ${errorData.detail}`;
+            }
+
+        } catch (error) {}
+
+        throw new Error(message);
     }
+
+
+    return await response.json();
 }
 
 
 /* =========================================================
-   GITHUB FETCH
+   GITHUB IMPORT
 ========================================================= */
 
 async function fetchGitHubAPI(githubUrl) {
 
-    try {
+    const response = await fetch(
+        `${API_BASE_URL}/api/github/fetch`,
+        {
+            method: "POST",
 
-        const response = await fetch(
-            ${API_BASE_URL}/api/github/fetch,
-            {
-                method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
 
-                headers: {
-                    "Content-Type": "application/json"
-                },
-
-                body: JSON.stringify({
-                    github_url: githubUrl
-                })
-            }
-        );
-
-        if (!response.ok) {
-
-            throw new Error(
-                Server error: ${response.status}
-            );
-
+            body: JSON.stringify({
+                github_url: githubUrl
+            })
         }
+    );
 
-        const data = await response.json();
 
-        console.log(
-            "GitHub result:",
-            data
-        );
+    if (!response.ok) {
 
-        return data;
+        let message =
+            `Server error: ${response.status}`;
 
-    } catch (error) {
+        try {
 
-        console.error(
-            "GitHub API error:",
-            error
-        );
+            const errorData =
+                await response.json();
 
-        throw error;
+            if (errorData.detail) {
+                message += ` - ${errorData.detail}`;
+            }
+
+        } catch (error) {}
+
+        throw new Error(message);
     }
+
+
+    return await response.json();
 }
 
 
 /* =========================================================
-   HEALTH CHECK
+   BACKEND HEALTH CHECK
 ========================================================= */
 
 async function checkBackendHealth() {
 
     try {
 
-        const response = await fetch(
-            ${API_BASE_URL}/
-        );
+        const response =
+            await fetch(`${API_BASE_URL}/`);
 
-        if (!response.ok) {
-            return false;
-        }
-
-        return true;
+        return response.ok;
 
     } catch (error) {
 
         console.error(
-            "Backend is not reachable:",
+            "Backend health check failed:",
             error
         );
 

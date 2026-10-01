@@ -4,6 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.database import Base, engine
 from app import models
 from app.analyzer.analyse import router as analyze_router
+from app.api.explain import router as explain_router
 
 
 # =========================================================
@@ -35,6 +36,7 @@ app.add_middleware(
 
 @app.on_event("startup")
 def create_tables():
+
     Base.metadata.create_all(
         bind=engine
     )
@@ -46,6 +48,10 @@ def create_tables():
 
 app.include_router(
     analyze_router
+)
+
+app.include_router(
+    explain_router
 )
 
 
