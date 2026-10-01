@@ -27,9 +27,18 @@ llm_service = LLMService(
 
 # Test code
 code = """
-def login(username):
-    query = "SELECT * FROM users WHERE username = '" + username + "'"
-    cursor.execute(query)
+def calculate_average(numbers):
+    if not numbers:
+        return 0
+
+    total = sum(numbers)
+    return total / len(numbers)
+
+
+numbers = [10, 20, 30, 40]
+average = calculate_average(numbers)
+
+print(average)
 """
 
 
