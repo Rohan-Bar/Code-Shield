@@ -27,18 +27,11 @@ llm_service = LLMService(
 
 # Test code
 code = """
-def calculate_average(numbers):
-    if not numbers:
-        return 0
+import os
 
-    total = sum(numbers)
-    return total / len(numbers)
-
-
-numbers = [10, 20, 30, 40]
-average = calculate_average(numbers)
-
-print(average)
+def ping(host):
+    command = "ping -c 4 " + host
+    os.system(command)
 """
 
 
