@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.database import Base, engine
 from app import models
-from app.api.analyze import router as analyze_router
+from app.analyzer.analyse import router as analyze_router
 
 
 app = FastAPI(
@@ -39,8 +39,7 @@ def create_tables():
 # ---------------------------------------------------------
 
 app.include_router(
-    analyze_router,
-    prefix="/api"
+    analyze_router
 )
 
 

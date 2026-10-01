@@ -21,6 +21,16 @@ class IssueResponse(BaseModel):
     vulnerable_snippet: str
 
 
+class LLMIssueResponse(BaseModel):
+    owasp_category: str
+    type: str
+    severity: Literal["HIGH", "MEDIUM", "LOW"]
+    line: int
+    description: str
+    evidence: str
+    secure_fix: str
+
+
 class ComplexityResponse(BaseModel):
     time: str
     space: str
@@ -35,6 +45,7 @@ class DiffResponse(BaseModel):
 class AnalyzeResponse(BaseModel):
     analysis_id: str
     issues: list[IssueResponse]
+    llm_issues: list[LLMIssueResponse]
     complexity: ComplexityResponse
     diff: DiffResponse
 
