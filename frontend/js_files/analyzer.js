@@ -1,129 +1,108 @@
-const API_URL = "http://127.0.0.1:8000";
+/* =========================================================
+   CODESHIELD — ANALYZER
+   Connects Monaco Editor → API → Results UI
+========================================================= */
 
-const codeInput = document.getElementById("codeInput");
 const analyzeBtn = document.getElementById("analyzeBtn");
 
+
+/* =========================================================
+   ANALYZE CODE
+========================================================= */
+
 async function analyzeCode() {
-    const code = codeInput.value.trim();
+
+    // Get code from Monaco if available
+    let code = "";
+
+    if (typeof getEditorCode === "function") {
+        code = getEditorCode();
+    }
+
+    // Fallback to textarea
+    if (!code) {
+        const codeInput = document.getElementById("codeInput");
+
+        if (codeInput) {
+            code = codeInput.value;
+        }
+    }
+
+    code = code.trim();
 
     if (!code) {
-        alert("Please paste some code first.");
+        alert("Please paste or type some code first.");
         return;
     }
 
-    analyzeBtn.disabled = true;
-    analyzeBtn.textContent = "Analyzing...";
+
+    /* -----------------------------------------------------
+       Get selected language
+    ----------------------------------------------------- */
+
+    const languageElement = document.getElementById("language");
+
+    const language = languageElement
+        ? languageElement.value
+        : "python";
+
+
+    /* -----------------------------------------------------
+       Disable button
+    ----------------------------------------------------- */
+
+    if (analyzeBtn) {
+        analyzeBtn.disabled = true;
+        analyzeBtn.textContent = "Analyzing...";
+    }
+
 
     try {
-        const response = await fetch(`${API_URL}/api/analyze`, {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json"
-            },
-            body: JSON.stringify({
-                code: code,
-                language: "python"
-            })
-        });
 
-        if (!response.ok) {
-            throw new Error(`Backend returned ${response.status}`);
-        }
+        console.log("Sending code to backend...");
+        console.log("Language:", language);
 
-        const data = await response.json();
 
-        console.log("Analysis result:", data);
+        /* -------------------------------------------------
+           Call API.js
+        ------------------------------------------------- */
+
+        const data = await analyzeCodeAPI(code, language);
+
+
+        console.log("Backend analysis:", data);
+
+
+        /* -------------------------------------------------
+           Display results
+        ------------------------------------------------- */
 
         displayResults(data);
 
+
     } catch (error) {
-        console.error(error);
 
-        // Temporary fallback while DB error is being ignored
-        const mockResult = createMockResult(code);
+        console.error("Analysis failed:", error);
 
-        displayResults(mockResult);
-
-        console.log(
-            "Backend unavailable, showing temporary frontend result."
+        alert(
+            "Could not connect to the backend.\n\n" +
+            "Make sure FastAPI is running on http://127.0.0.1:8000"
         );
 
     } finally {
-        analyzeBtn.disabled = false;
-        analyzeBtn.textContent = "Analyze Code";
+
+        if (analyzeBtn) {
+            analyzeBtn.disabled = false;
+            analyzeBtn.textContent = "Analyze Code";
+        }
+
     }
 }
 
 
-function createMockResult(code) {
-
-    const lines = code.split("\n");
-
-    const issues = [];
-
-    lines.forEach((line, index) => {
-
-        if (/\b(eval|exec)\s*\(/.test(line)) {
-
-            issues.push({
-                id: "rule-1-code-injection",
-                type: "Code Injection",
-                severity: "HIGH",
-                line: index + 1,
-                description:
-                    "Potential code injection detected in this line.",
-                vulnerable_snippet: line.trim()
-            });
-
-        }
-
-        if (/(password|secret|api_key|token)\s*=\s*["'][^"']+["']/i.test(line)) {
-
-            issues.push({
-                id: "rule-1-hardcoded-secret",
-                type: "Hardcoded Secret",
-                severity: "HIGH",
-                line: index + 1,
-                description:
-                    "A possible hardcoded credential or secret was detected.",
-                vulnerable_snippet: line.trim()
-            });
-
-        }
-
-        if (/innerHTML\s*=|document\.write/.test(line)) {
-
-            issues.push({
-                id: "rule-1-xss",
-                type: "XSS",
-                severity: "HIGH",
-                line: index + 1,
-                description:
-                    "Unsafe HTML insertion may allow script injection.",
-                vulnerable_snippet: line.trim()
-            });
-
-        }
-    });
-
-    return {
-        analysis_id: "demo-" + Date.now(),
-
-        issues: issues,
-
-        complexity: {
-            time: "O(n)",
-            space: "O(1)",
-            bottleneck_lines: ""
-        },
-
-        diff: {
-            vulnerable: lines,
-            secure: lines
-        }
-    };
-}
-
+/* =========================================================
+   DISPLAY RESULTS
+========================================================= */
 
 function displayResults(data) {
 
@@ -131,10 +110,10 @@ function displayResults(data) {
     console.log("Complexity:", data.complexity);
     console.log("Diff:", data.diff);
 
-    /*
-     * If your HTML already has result containers,
-     * we populate them here.
-     */
+
+    /* =====================================================
+       ISSUES
+    ===================================================== */
 
     const issueContainer =
         document.getElementById("issuesList");
@@ -143,7 +122,14 @@ function displayResults(data) {
 
         issueContainer.innerHTML = "";
 
-        if (data.issues.length === 0) {
+        const issues = Array.isArray(data.issues)
+            ? data.issues
+            : [];
+
+
+        /* No vulnerabilities */
+
+        if (issues.length === 0) {
 
             issueContainer.innerHTML = `
                 <div class="no-issues">
@@ -151,72 +137,258 @@ function displayResults(data) {
                 </div>
             `;
 
-        } else {
+        }
 
-            data.issues.forEach(issue => {
+        /* Vulnerabilities found */
 
-                const card = document.createElement("div");
+        else {
+
+            issues.forEach((issue) => {
+
+                const card =
+                    document.createElement("div");
 
                 card.className = "issue-card";
 
+
+                const severity =
+                    issue.severity || "UNKNOWN";
+
+
                 card.innerHTML = `
-                    <div>
-                        <strong>${issue.type}</strong>
-                        <span>${issue.severity}</span>
+                    <div class="issue-header">
+
+                        <strong>
+                            ${escapeHTML(issue.type || "Security Issue")}
+                        </strong>
+
+                        <span class="severity ${severity.toLowerCase()}">
+                            ${escapeHTML(severity)}
+                        </span>
+
                     </div>
 
-                    <p>Line ${issue.line}</p>
+                    <p>
+                        <strong>Line:</strong>
+                        ${issue.line || "N/A"}
+                    </p>
 
-                    <p>${issue.description}</p>
+                    <p>
+                        ${escapeHTML(
+                            issue.description ||
+                            "No description available."
+                        )}
+                    </p>
 
-                    <code>${issue.vulnerable_snippet}</code>
+                    <pre><code>${escapeHTML(
+                        issue.vulnerable_snippet || ""
+                    )}</code></pre>
                 `;
 
+
                 issueContainer.appendChild(card);
+
             });
+
         }
     }
 
 
-    const timeElement =
-        document.getElementById("timeComplexity");
+    /* =====================================================
+       ISSUE COUNT
+    ===================================================== */
 
-    if (timeElement) {
-        timeElement.textContent =
-            data.complexity.time;
+    const issueCount =
+        document.getElementById("issueCount");
+
+    if (issueCount) {
+
+        const count =
+            Array.isArray(data.issues)
+                ? data.issues.length
+                : 0;
+
+        issueCount.textContent = count;
+
     }
 
 
-    const spaceElement =
-        document.getElementById("spaceComplexity");
+    /* =====================================================
+       AI ISSUE SUMMARY
+    ===================================================== */
 
-    if (spaceElement) {
-        spaceElement.textContent =
-            data.complexity.space;
+    if (data.issues && data.issues.length > 0) {
+
+        const firstIssue = data.issues[0];
+
+
+        const severityElement =
+            document.getElementById("aiIssueSeverity");
+
+        if (severityElement) {
+
+            severityElement.textContent =
+                firstIssue.severity || "UNKNOWN";
+
+        }
+
+
+        const titleElement =
+            document.getElementById("aiIssueTitle");
+
+        if (titleElement) {
+
+            titleElement.textContent =
+                firstIssue.type || "Security Issue";
+
+        }
+
     }
 
 
-    const diffVulnerable =
-        document.getElementById("vulnerableCode");
+    /* =====================================================
+       COMPLEXITY
+    ===================================================== */
 
-    if (diffVulnerable) {
-        diffVulnerable.textContent =
-            data.diff.vulnerable.join("\n");
+    if (data.complexity) {
+
+        const timeElement =
+            document.getElementById("timeComplexity");
+
+        if (timeElement) {
+
+            timeElement.textContent =
+                data.complexity.time || "N/A";
+
+        }
+
+
+        const spaceElement =
+            document.getElementById("spaceComplexity");
+
+        if (spaceElement) {
+
+            spaceElement.textContent =
+                data.complexity.space || "N/A";
+
+        }
+
+
+        const bottleneckElement =
+            document.getElementById("bottleneckLines");
+
+        if (bottleneckElement) {
+
+            bottleneckElement.textContent =
+                data.complexity.bottleneck_lines || "N/A";
+
+        }
+
     }
 
 
-    const diffSecure =
-        document.getElementById("secureCode");
+    /* =====================================================
+       SECURE CODE DIFF
+    ===================================================== */
 
-    if (diffSecure) {
-        diffSecure.textContent =
-            data.diff.secure.join("\n");
+    if (data.diff) {
+
+        const diffVulnerable =
+            document.getElementById("vulnerableCode");
+
+        if (diffVulnerable) {
+
+            const vulnerable =
+                Array.isArray(data.diff.vulnerable)
+                    ? data.diff.vulnerable.join("\n")
+                    : data.diff.vulnerable || "";
+
+            diffVulnerable.textContent =
+                vulnerable;
+
+        }
+
+
+        const diffSecure =
+            document.getElementById("secureCode");
+
+        if (diffSecure) {
+
+            const secure =
+                Array.isArray(data.diff.secure)
+                    ? data.diff.secure.join("\n")
+                    : data.diff.secure || "";
+
+            diffSecure.textContent =
+                secure;
+
+        }
+
     }
+
+
+    /* =====================================================
+       MONACO ISSUE HIGHLIGHTING
+    ===================================================== */
+
+    if (
+        typeof setIssueDecorations === "function" &&
+        Array.isArray(data.issues)
+    ) {
+
+        setIssueDecorations(data.issues);
+
+    }
+
+
+    /* =====================================================
+       MONACO BOTTLENECK HIGHLIGHTING
+    ===================================================== */
+
+    if (
+        typeof setBottleneckDecoration === "function" &&
+        data.complexity
+    ) {
+
+        setBottleneckDecoration(
+            data.complexity.bottleneck_lines
+        );
+
+    }
+
 }
 
 
+/* =========================================================
+   ESCAPE HTML
+   Prevents code/description from being interpreted as HTML
+========================================================= */
+
+function escapeHTML(value) {
+
+    if (value === null || value === undefined) {
+        return "";
+    }
+
+    return String(value)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+
+}
+
+
+/* =========================================================
+   ANALYZE BUTTON
+========================================================= */
+
 if (analyzeBtn) {
 
-    analyzeBtn.addEventListener("click", analyzeCode);
+    analyzeBtn.addEventListener(
+        "click",
+        analyzeCode
+    );
 
 }
