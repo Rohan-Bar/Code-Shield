@@ -3,7 +3,7 @@
    Handles all communication with FastAPI
 ========================================================= */
 
-const API_BASE_URL = "http://127.0.0.1:8000";
+const API_BASE_URL = "https://autocode-backend-1.onrender.com";
 
 
 /* =========================================================
@@ -11,16 +11,13 @@ const API_BASE_URL = "http://127.0.0.1:8000";
 ========================================================= */
 
 async function analyzeCodeAPI(code, language) {
-
     const response = await fetch(
         `${API_BASE_URL}/api/analyze`,
         {
             method: "POST",
-
             headers: {
                 "Content-Type": "application/json"
             },
-
             body: JSON.stringify({
                 code: code,
                 language: language
@@ -28,21 +25,15 @@ async function analyzeCodeAPI(code, language) {
         }
     );
 
-
     if (!response.ok) {
-
-        let message =
-            `Server error: ${response.status}`;
+        let message = `Server error: ${response.status}`;
 
         try {
-
-            const errorData =
-                await response.json();
+            const errorData = await response.json();
 
             if (errorData.detail) {
                 message += ` - ${errorData.detail}`;
             }
-
         } catch (error) {
             // Ignore JSON parsing error
         }
@@ -50,16 +41,9 @@ async function analyzeCodeAPI(code, language) {
         throw new Error(message);
     }
 
+    const data = await response.json();
 
-    const data =
-        await response.json();
-
-
-    console.log(
-        "CodeShield API response:",
-        data
-    );
-
+    console.log("CodeShield API response:", data);
 
     return data;
 }
@@ -73,16 +57,13 @@ async function explainVulnerabilityAPI(
     vulnerabilityId,
     question
 ) {
-
     const response = await fetch(
         `${API_BASE_URL}/api/explain`,
         {
             method: "POST",
-
             headers: {
                 "Content-Type": "application/json"
             },
-
             body: JSON.stringify({
                 vulnerability_id: vulnerabilityId,
                 question: question
@@ -90,26 +71,19 @@ async function explainVulnerabilityAPI(
         }
     );
 
-
     if (!response.ok) {
-
-        let message =
-            `Server error: ${response.status}`;
+        let message = `Server error: ${response.status}`;
 
         try {
-
-            const errorData =
-                await response.json();
+            const errorData = await response.json();
 
             if (errorData.detail) {
                 message += ` - ${errorData.detail}`;
             }
-
         } catch (error) {}
 
         throw new Error(message);
     }
-
 
     return await response.json();
 }
@@ -120,42 +94,32 @@ async function explainVulnerabilityAPI(
 ========================================================= */
 
 async function fetchGitHubAPI(githubUrl) {
-
     const response = await fetch(
         `${API_BASE_URL}/api/github/fetch`,
         {
             method: "POST",
-
             headers: {
                 "Content-Type": "application/json"
             },
-
             body: JSON.stringify({
                 github_url: githubUrl
             })
         }
     );
 
-
     if (!response.ok) {
-
-        let message =
-            `Server error: ${response.status}`;
+        let message = `Server error: ${response.status}`;
 
         try {
-
-            const errorData =
-                await response.json();
+            const errorData = await response.json();
 
             if (errorData.detail) {
                 message += ` - ${errorData.detail}`;
             }
-
         } catch (error) {}
 
         throw new Error(message);
     }
-
 
     return await response.json();
 }
@@ -166,16 +130,10 @@ async function fetchGitHubAPI(githubUrl) {
 ========================================================= */
 
 async function checkBackendHealth() {
-
     try {
-
-        const response =
-            await fetch(`${API_BASE_URL}/`);
-
+        const response = await fetch(`${API_BASE_URL}/`);
         return response.ok;
-
     } catch (error) {
-
         console.error(
             "Backend health check failed:",
             error
