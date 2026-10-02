@@ -6,3 +6,4 @@ pydantic-settings
 groq
 httpx
 sqlalchemy
+psycopg2-binary
